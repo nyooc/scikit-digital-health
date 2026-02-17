@@ -27,7 +27,7 @@ from numpy import (
     isnan,
 )
 from numpy.linalg import norm
-from pandas import Timedelta, Timestamp
+from pandas import Timedelta, Timestamp, DataFrame
 import matplotlib
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.lines as mlines
@@ -82,6 +82,8 @@ class ActivityLevelClassification(BaseProcess):
         Two (2) element array-like of the base and period of the window to use for
         determining days. Default is (0, 24), which will look for days starting at
         midnight and lasting 24 hours. None removes any day-based windowing.
+    save_epoch_data : bool
+        Save the epochs with calculated metrics. Default is False.
 
     Notes
     -----
@@ -137,6 +139,7 @@ class ActivityLevelClassification(BaseProcess):
         min_wear_time=10,
         cutpoints="migueles_wrist_adult",
         day_window=(0, 24),
+        save_epoch_data=False,
     ):
         # make sure that the short_wlen is a factor of 60, and if not send it to
         # nearest factor
@@ -165,6 +168,7 @@ class ActivityLevelClassification(BaseProcess):
             min_wear_time=min_wear_time,
             cutpoints=cutpoints_,
             day_window=day_window,
+            save_epoch_data=save_epoch_data,
         )
 
         self.wlen = short_wlen
@@ -180,6 +184,13 @@ class ActivityLevelClassification(BaseProcess):
             self.day_key = (-1, -1)
         else:
             self.day_key = tuple(day_window)
+
+        self.save_epochs = save_epoch_data
+        self.epoch_data = {
+            "time": [],
+            "metric": [],
+            "intensity": []
+        }
 
         # enable plotting as a public method
         self.setup_plotting = self._setup_plotting
@@ -227,6 +238,39 @@ class ActivityLevelClassification(BaseProcess):
             ept.TotalIntensityTime(lvl, self.wlen, self.cutpoints, state="sleep")
             for lvl in self.act_levels
         ]
+
+    def save_results(self, results, file_name):
+        """
+        Save the results of the processing pipeline to a csv file. Will also
+        save per epoch metric value if `save_epoch_data` is true. The file name 
+        for per epoch results is the same as the activity endpoints file with 
+        "_per_epoch_predictions" added to the end.
+
+        Parameters
+        ----------
+        results : dict
+            Dictionary of results from the output of predict
+        file_name : str
+            File name. Can be optionally formatted (see Notes)
+
+        Notes
+        -----
+        Available format variables available:
+
+        - date: todays date expressed in yyyymmdd format.
+        - name: process name.
+        - file: file name used in the pipeline, or "" if not found.
+        """
+        file_name = super().save_results(results, file_name)
+
+        if self.save_epochs:
+            file_name = Path(file_name)
+
+            new_name = file_name.stem + "_per_epoch_predictions" + file_name.suffix
+            epoch_file = file_name.with_name(new_name)
+
+            df = DataFrame(self.epoch_data)
+            df.to_csv(epoch_file, index=False)
 
     def add(self, endpoint):
         """
@@ -478,7 +522,7 @@ class ActivityLevelClassification(BaseProcess):
 
             # compute waking hours activity endpoints
             self._compute_awake_activity_endpoints(
-                res, accel, fs, iday, dwear_starts, dwear_stops, nwlen, nwlen_60, epm
+                res, time, accel, fs, iday, dwear_starts, dwear_stops, nwlen, nwlen_60, epm
             )
             # compute sleeping hours activity endpoints
             self._compute_sleep_activity_endpoints(
@@ -517,7 +561,7 @@ class ActivityLevelClassification(BaseProcess):
                 results[endpt.name][day_n] = 0.0
 
     def _compute_awake_activity_endpoints(
-        self, results, accel, fs, day_n, starts, stops, n_wlen, n_wlen_60, epm
+        self, results, time, accel, fs, day_n, starts, stops, n_wlen, n_wlen_60, epm
     ):
         # initialize values from nan to 0.0. Do this here because days with less than
         # minimum hours should have nan values
@@ -536,6 +580,14 @@ class ActivityLevelClassification(BaseProcess):
             )
             acc_metric_60 = metric_fn(
                 accel[start:stop], n_wlen_60, fs, **self.cutpoints["kwargs"]
+            )
+
+            # handle saving the epoch data
+            self._handle_epoch_data(
+                n_wlen,
+                fs,
+                time[start:stop],
+                acc_metric,
             )
 
             for endpoint in self.wake_endpoints:
@@ -740,6 +792,30 @@ class ActivityLevelClassification(BaseProcess):
 
         pp.close()
 
+    def _handle_epoch_data(self, wlen, fs, time, metric):
+        if self.save_epochs:
+            self.epoch_data["time"].extend(
+                time[:-wlen+1:wlen]
+            )
+            self.epoch_data["metric"].extend(
+                metric
+            )
+            # handle the threshold/intensity stuff
+            intensity = full(metric.size, "sedentary")
+
+            light_lt, light_ut = get_level_thresholds("light", self.cutpoints)
+            mod_lt, mod_ut = get_level_thresholds("moderate", self.cutpoints)
+            vig_lt, _ = get_level_thresholds("vig", self.cutpoints)
+
+            light_mask = (metric >= light_lt) & (metric < light_ut)
+            mod_mask = (metric >= mod_lt) & (metric < mod_ut)
+            vig_mask = metric >= vig_lt
+
+            intensity[light_mask] = "light"
+            intensity[mod_mask] = "moderate"
+            intensity[vig_mask] = "vigorous"
+
+            self.epoch_data['intensity'].extend(intensity)
 
 class StaudenmayerClassification(BaseProcess):
     """
