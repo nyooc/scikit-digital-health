@@ -380,6 +380,9 @@ class ReadCSV(BaseIO):
             }
         )
 
+        print(fs)
+        print(unique(diff(time)))
+
         # convert accel data
         for k, conv_factor in self.raw_conversions.items():
             try:
