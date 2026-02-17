@@ -329,6 +329,8 @@ class ReadCSV(BaseIO):
         # load the file with pandas
         raw = read_csv(file, **self.read_csv_kwargs)
 
+        print(unique(diff(raw[self.time_col_name])))
+
         # update the to_datetime_kwargs based on tz_name.  tz_name==None (utc=False)
         self.to_datetime_kw.update({"utc": tz_name is not None})
 
