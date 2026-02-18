@@ -265,6 +265,8 @@ class ReadCSV(BaseIO):
             # compute time delta to add
             t_delta = tile(arange(0, 1, 1 / n_samples), int(n_blocks))
 
+            print(unique(t_delta))
+
             # add the time delta so that we have unique timestamps
             time += t_delta
 
@@ -339,10 +341,14 @@ class ReadCSV(BaseIO):
             raw[self.time_col_name], **self.to_datetime_kw
         )
 
+        print(unique(diff(raw[self.time_col_name])))
+
         # convert timestamps if necessary
         if tz_name is not None:
             # convert, and then remove the timezone so its naive again, but now in local time
             raw[self.time_col_name] = raw[self.time_col_name].dt.tz_convert(tz_name)
+        
+        print(unique(diff(raw[self.time_col_name])))
 
         # now handle data gaps and second level timestamps, etc
         # raw, fs = self.handle_timestamp_inconsistency(raw, fill_values)
@@ -351,6 +357,8 @@ class ReadCSV(BaseIO):
         time = (
             raw[self.time_col_name].astype(int).values / 1e9
         )  # int gives ns, convert to s
+
+        print(unique(diff(time)))
 
         data = {}
         # grab the data we expect
