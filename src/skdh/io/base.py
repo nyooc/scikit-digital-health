@@ -106,7 +106,7 @@ def handle_naive_timestamps(time, is_local, tz_name=None):
                 .total_seconds()
             )
 
-            time += offset
+            time = time + offset
         else:  # is_local, tz_name is None
             warn(
                 "Timestamps are local but naive, and no time-zone information is available. "

@@ -20,6 +20,7 @@ from numpy import (
     allclose,
     nonzero,
     diff,
+    int64,
 )
 from pandas import read_csv, to_datetime
 
@@ -266,7 +267,7 @@ class ReadCSV(BaseIO):
             t_delta = tile(arange(0, 1, 1 / n_samples), int(n_blocks))
 
             # add the time delta so that we have unique timestamps
-            time += t_delta
+            time = time + t_delta
 
         # check if we are filling gaps or not
         if self.fill_gaps:
@@ -332,29 +333,29 @@ class ReadCSV(BaseIO):
         # update the to_datetime_kwargs based on tz_name.  tz_name==None (utc=False)
         self.to_datetime_kw.update({"utc": tz_name is not None})
 
-        # convert time column to a datetime column. Give a unique name so we shouldnt overwrite
-        raw[self.time_col_name] = to_datetime(
+        # convert time column to a datetime column.
+        time_series = to_datetime(
             raw[self.time_col_name], **self.to_datetime_kw
         )
 
         # convert timestamps if necessary
         if tz_name is not None:
             # convert, and then remove the timezone so its naive again, but now in local time
-            raw[self.time_col_name] = raw[self.time_col_name].dt.tz_convert(tz_name)
+            time_series = time_series.dt.tz_convert(tz_name)
+    
 
         # now handle data gaps and second level timestamps, etc
         # raw, fs = self.handle_timestamp_inconsistency(raw, fill_values)
 
         # get the time values and convert to seconds
-        time = (
-            raw[self.time_col_name].astype(int).values / 1e9
-        )  # int gives ns, convert to s
+        time = time_series.dt.as_unit('s').astype(int64).to_numpy(copy=True)
+        # first convert to 's' representation, then to int gives correct values
 
         data = {}
         # grab the data we expect
         for dstream in self.column_names:
             try:
-                data[dstream] = raw[self.column_names[dstream]].values
+                data[dstream] = raw[self.column_names[dstream]].to_numpy(copy=True)
             except KeyError:
                 warn(
                     f"Data stream {dstream} specified in column names but all "

@@ -47,7 +47,7 @@ class Sleep(BaseProcess):
     min_rest_block : int, optional
         Number of minutes required to consider a rest period valid. Default is 30 minutes.
     max_activity_break : int, optional
-        Number of minutes of activity allowed to interrupt the major rest period. Default is 30
+        Number of minutes of activity allowed to interrupt the major rest period. Default is 60
         minutes.
     tso_min_thresh : float, optional
         Minimum allowed z-angle threshold for determining major rest period. Default is 0.1.

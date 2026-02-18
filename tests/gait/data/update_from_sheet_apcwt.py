@@ -56,8 +56,8 @@ if __name__ == "__main__":
     # get keys to update results for
     keys_turn = keys + ["Turn"]
 
-    tmp = {k: df.loc[:, k].values for k in keys}
-    tmp_turn = {k: df_turn.loc[:, k].values for k in keys_turn}
+    tmp = {k: df.loc[:, k].to_numpy(copy=True) for k in keys}
+    tmp_turn = {k: df_turn.loc[:, k].to_numpy(copy=True) for k in keys_turn}
 
     np.savez("gait_results_apcwt.npz", **tmp)
     np.savez("gait_results2_apcwt.npz", **tmp_turn)
