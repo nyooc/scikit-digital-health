@@ -265,10 +265,13 @@ class ReadCSV(BaseIO):
             # compute time delta to add
             t_delta = tile(arange(0, 1, 1 / n_samples), int(n_blocks))
 
-            print(unique(t_delta))
+            print("t_delta", unique(t_delta))
+            print("time before delta", unique(diff(time)))
 
             # add the time delta so that we have unique timestamps
             time += t_delta
+
+            print("time after delta", unique(diff(time)))
 
         # check if we are filling gaps or not
         if self.fill_gaps:
