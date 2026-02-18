@@ -24,10 +24,10 @@ class TestHandleTimestampInconsistency:
         )
 
         # get numpy arrays
-        time = raw["_datetime_"].as_unit('s').astype(int).values
+        time = raw["_datetime_"].dt.as_unit('s').astype(int).to_numpy(copy=True)
         data = {
-            "accel": raw[["ax", "ay", "az"]].values,
-            "temperature": raw["temperature"].values,
+            "accel": raw[["ax", "ay", "az"]].to_numpy(copy=True),
+            "temperature": raw["temperature"].to_numpy(copy=True),
         }
 
         comp_fs, time_rs, data_rs = rdr.handle_timestamp_inconsistency_np(
@@ -42,7 +42,7 @@ class TestHandleTimestampInconsistency:
             assert isnan(dstream).sum() == 0
 
         # trim a few samples off the last block and check we get a warning
-        time2 = raw["_datetime_"].as_unit('s').astype(int).values[:-5]
+        time2 = raw["_datetime_"].dt.as_unit('s').astype(int).values[:-5]
         data2 = {
             "accel": raw[["ax", "ay", "az"]].values[:-5],
             "temperature": raw["temperature"].values[:-5],
@@ -74,7 +74,7 @@ class TestHandleTimestampInconsistency:
         raw.drop(index=range(13095, 14003), inplace=True)
         raw.reset_index(drop=True, inplace=True)
 
-        time = raw["_datetime_"].as_unit('s').astype(int).values
+        time = raw["_datetime_"].dt.as_unit('s').astype(int).values
         data = {
             "accel": raw[["ax", "ay", "az"]].values,
             "temperature": raw["temperature"].values,
