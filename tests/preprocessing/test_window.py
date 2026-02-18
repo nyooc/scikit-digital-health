@@ -75,7 +75,7 @@ class TestGetDayWindowIndices:
             freq="s",
             tz="US/Eastern",
         )
-        time = dr.astype(int).values / 1e9
+        time = dr.as_unit('s').astype(int).values
 
         days = GetDayWindowIndices(bases=[0], periods=[24]).predict(
             time=time, fs=1.0, tz_name="US/Eastern"
@@ -93,7 +93,7 @@ class TestGetDayWindowIndices:
             freq="s",
             tz="US/Eastern",
         )
-        time = dr.astype(int).values / 1e9
+        time = dr.as_unit('s').astype(int).values / 1e9
 
         # intentionally making fs wrong here to force a bad guess at the end
         days = GetDayWindowIndices(bases=[0], periods=[24]).predict(
