@@ -262,7 +262,7 @@ class Bank:
         # standardize the input signal
         if isinstance(signal, DataFrame):
             columns = columns if columns is not None else signal.columns
-            x = signal[columns].to_numpy().astype(float64)
+            x = signal[columns].to_numpy(copy=True).astype(float64)
         else:
             try:
                 x = asarray(signal, dtype=float64)

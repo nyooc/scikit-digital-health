@@ -267,7 +267,7 @@ class ReadCSV(BaseIO):
             t_delta = tile(arange(0, 1, 1 / n_samples), int(n_blocks))
 
             # add the time delta so that we have unique timestamps
-            time += t_delta
+            time = time + t_delta
 
         # check if we are filling gaps or not
         if self.fill_gaps:
@@ -348,14 +348,14 @@ class ReadCSV(BaseIO):
         # raw, fs = self.handle_timestamp_inconsistency(raw, fill_values)
 
         # get the time values and convert to seconds
-        time = time_series.dt.as_unit('s').astype(int64).to_numpy()
+        time = time_series.dt.as_unit('s').astype(int64).to_numpy(copy=True)
         # first convert to 's' representation, then to int gives correct values
 
         data = {}
         # grab the data we expect
         for dstream in self.column_names:
             try:
-                data[dstream] = raw[self.column_names[dstream]].values
+                data[dstream] = raw[self.column_names[dstream]].to_numpy(copy=True)
             except KeyError:
                 warn(
                     f"Data stream {dstream} specified in column names but all "
