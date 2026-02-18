@@ -20,6 +20,7 @@ from numpy import (
     allclose,
     nonzero,
     diff,
+    int64,
 )
 from pandas import read_csv, to_datetime
 
@@ -265,13 +266,8 @@ class ReadCSV(BaseIO):
             # compute time delta to add
             t_delta = tile(arange(0, 1, 1 / n_samples), int(n_blocks))
 
-            print("t_delta", unique(t_delta))
-            print("time before delta", unique(diff(time)))
-
             # add the time delta so that we have unique timestamps
             time += t_delta
-
-            print("time after delta", unique(diff(time)))
 
         # check if we are filling gaps or not
         if self.fill_gaps:
@@ -334,8 +330,6 @@ class ReadCSV(BaseIO):
         # load the file with pandas
         raw = read_csv(file, **self.read_csv_kwargs)
 
-        print(unique(diff(raw[self.time_col_name])))
-
         # update the to_datetime_kwargs based on tz_name.  tz_name==None (utc=False)
         self.to_datetime_kw.update({"utc": tz_name is not None})
 
@@ -344,24 +338,19 @@ class ReadCSV(BaseIO):
             raw[self.time_col_name], **self.to_datetime_kw
         )
 
-        print(unique(diff(raw[self.time_col_name])))
-
         # convert timestamps if necessary
         if tz_name is not None:
             # convert, and then remove the timezone so its naive again, but now in local time
             raw[self.time_col_name] = raw[self.time_col_name].dt.tz_convert(tz_name)
-        
-        print(unique(diff(raw[self.time_col_name])))
+    
 
         # now handle data gaps and second level timestamps, etc
         # raw, fs = self.handle_timestamp_inconsistency(raw, fill_values)
 
         # get the time values and convert to seconds
         time = (
-            raw[self.time_col_name].astype(int).values / 1e9
-        )  # int gives ns, convert to s
-
-        print(unique(diff(time)))
+            raw[self.time_col_name].as_unit('s').astype(int64).values
+        )  # first convert to 's' representation, then to int gives correct values
 
         data = {}
         # grab the data we expect
@@ -392,9 +381,6 @@ class ReadCSV(BaseIO):
                 "fs": fs,
             }
         )
-
-        print(fs)
-        print(unique(diff(time)))
 
         # convert accel data
         for k, conv_factor in self.raw_conversions.items():
